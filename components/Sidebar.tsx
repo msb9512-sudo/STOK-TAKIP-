@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Role } from '../types';
-import { LayoutDashboard, ShoppingBag, Beer, LogOut, Package, RefreshCcw, TrendingUp, Truck, ArrowRightLeft, Download, Settings, ChevronUp, ChevronDown, FileText, FileUp, FileDown, AlertOctagon, X, Users, Cloud, Server, Database, ClipboardCheck, Key } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Beer, LogOut, Package, RefreshCcw, TrendingUp, Truck, ArrowRightLeft, Download, Settings, ChevronUp, ChevronDown, FileText, FileUp, FileDown, AlertOctagon, X, Users, Cloud, Server, Database, ClipboardCheck } from 'lucide-react';
 import { StorageService } from '../services/storageService';
 
 interface SidebarProps {
@@ -224,15 +224,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentRole, username, onLogou
                                 </div>
                             </>
                         )}
-                        <div className="border-t border-slate-700 my-1 pt-1">
-                            <button 
-                                onClick={() => window.dispatchEvent(new CustomEvent('barstock-open-apikey-modal'))} 
-                                className="w-full flex items-center space-x-3 px-4 py-2 text-amber-400 hover:text-amber-300 hover:bg-amber-950/20 rounded-lg transition-colors text-xs"
-                            >
-                                <Key size={14} />
-                                <span>Gemini API Anahtarı</span>
-                            </button>
-                        </div>
                     </div>
                 )}
             </div>

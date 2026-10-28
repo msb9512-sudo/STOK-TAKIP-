@@ -89,11 +89,13 @@ export const GoodsReceiptView: React.FC = () => {
       if (!file) return;
 
       if (file.type !== 'application/pdf') {
-          alert("Lütfen sadece PDF formatında fatura yükleyiniz.");
+          setFeedback({ msg: "Lütfen sadece PDF formatında fatura yükleyiniz.", type: 'error' });
+          setTimeout(() => setFeedback(null), 5000);
           return;
       }
 
       setIsParsing(true);
+      setFeedback(null);
       
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -102,6 +104,12 @@ export const GoodsReceiptView: React.FC = () => {
               const base64Data = (reader.result as string).split(',')[1];
               const result = await GeminiService.parseInvoicePDF(base64Data);
               
+              if (!result || result.length === 0) {
+                  setFeedback({ msg: "PDF içinde ürün kalemi tespit edilemedi. Lütfen ürünleri manuel olarak ekleyiniz.", type: 'error' });
+                  setTimeout(() => setFeedback(null), 6000);
+                  return;
+              }
+
               // Tag items as NEW or EXISTING based on Smart Match
               const taggedItems: ParsedItem[] = result.map((item: any) => {
                   const cleanName = item.name.trim();
@@ -122,11 +130,8 @@ export const GoodsReceiptView: React.FC = () => {
 
               setParsedItems(taggedItems);
           } catch (error: any) {
-              setFeedback({ msg: error.message, type: 'error' });
-              setTimeout(() => setFeedback(null), 6000);
-              if (!error.message?.includes('Gemini API anahtarı') && !error.message?.includes('statik hosting')) {
-                  alert("Fatura Analiz Hatası: " + error.message);
-              }
+              setFeedback({ msg: error.message || "Fatura analiz edilemedi. Lütfen manuel giriş yapınız.", type: 'error' });
+              setTimeout(() => setFeedback(null), 8000);
           } finally {
               setIsParsing(false);
               if(fileInputRef.current) fileInputRef.current.value = '';
@@ -134,7 +139,8 @@ export const GoodsReceiptView: React.FC = () => {
       };
       reader.onerror = () => {
           setIsParsing(false);
-          alert("Dosya okuma hatası.");
+          setFeedback({ msg: "Dosya okunamadı. Lütfen geçerli bir PDF seçiniz.", type: 'error' });
+          setTimeout(() => setFeedback(null), 5000);
       };
   };
 

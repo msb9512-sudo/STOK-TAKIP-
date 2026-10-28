@@ -66,6 +66,17 @@ async function generateWithFallback(params: {
 
 // API Routes
 
+function formatGeminiError(error: any): string {
+  const errMsg = error?.message || String(error);
+  if (errMsg.includes('ACCESS_TOKEN_TYPE_UNSUPPORTED') || errMsg.includes('API key not valid') || errMsg.includes('UNAUTHENTICATED') || error?.status === 401) {
+    return 'Geçerli bir API anahtarı bulunamadı. Lütfen AI Studio panelinden veya Settings > Secrets bölümünden API anahtarınızı seçiniz.';
+  }
+  if (errMsg.includes('DEADLINE_EXCEEDED') || errMsg.includes('504')) {
+    return 'Fatura analizi zaman aşımına uğradı (DEADLINE_EXCEEDED). Lütfen tekrar deneyin.';
+  }
+  return errMsg || 'İşlem gerçekleştirilemedi.';
+}
+
 // 1. Business Analysis Endpoint
 app.post('/api/gemini/analyze-business', async (req, res) => {
   try {
@@ -73,7 +84,7 @@ app.post('/api/gemini/analyze-business', async (req, res) => {
     const aiClient = getAiClient(customKey);
     if (!aiClient) {
       return res.status(500).json({
-        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Ayarlar > Gemini API Anahtarı bölümünden anahtarınızı giriniz.',
+        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Settings > Secrets panelini kontrol edin.',
       });
     }
 
@@ -101,7 +112,7 @@ app.post('/api/gemini/analyze-business', async (req, res) => {
     res.json({ text: response.text || '' });
   } catch (error: any) {
     console.error('Server Gemini analyzeBusiness Error:', error);
-    res.status(500).json({ error: error.message || 'İşletme analizi oluşturulamadı.' });
+    res.status(500).json({ error: formatGeminiError(error) });
   }
 });
 
@@ -112,7 +123,7 @@ app.post('/api/gemini/parse-invoice', async (req, res) => {
     const aiClient = getAiClient(customKey);
     if (!aiClient) {
       return res.status(500).json({
-        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Ayarlar > Gemini API Anahtarı bölümünden anahtarınızı giriniz.',
+        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Settings > Secrets panelini kontrol edin.',
       });
     }
 
@@ -181,11 +192,7 @@ app.post('/api/gemini/parse-invoice', async (req, res) => {
     res.json({ items });
   } catch (error: any) {
     console.error('Server Gemini parseInvoice Error:', error);
-    let errMsg = error.message || 'Fatura analiz edilemedi.';
-    if (errMsg.includes('DEADLINE_EXCEEDED') || errMsg.includes('504')) {
-      errMsg = 'Fatura analizi zaman aşımına uğradı (DEADLINE_EXCEEDED). Lütfen tekrar deneyin.';
-    }
-    res.status(500).json({ error: errMsg });
+    res.status(500).json({ error: formatGeminiError(error) });
   }
 });
 
