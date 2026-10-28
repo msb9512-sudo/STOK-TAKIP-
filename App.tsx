@@ -13,6 +13,7 @@ import { ForecastView } from './views/ForecastView';
 import { GoodsReceiptView } from './views/GoodsReceiptView';
 import { UserManagementView } from './views/UserManagementView';
 import { StockCountView } from './views/StockCountView';
+import { ApiKeyModal } from './components/ApiKeyModal';
 import { User as UserIcon, Lock, LogIn, AlertCircle, ShieldCheck, HelpCircle, CheckCircle, X, Menu, Fingerprint, Cloud, CloudOff, ServerCrash, RefreshCcw } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -22,6 +23,9 @@ export const App: React.FC = () => {
   const [isSystemLoading, setIsSystemLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [apiKeyModalReason, setApiKeyModalReason] = useState<string | undefined>(undefined);
 
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [username, setUsername] = useState('');
@@ -41,6 +45,15 @@ export const App: React.FC = () => {
   const [recoveredUsername, setRecoveredUsername] = useState<string | null>(null);
 
   const [isCloudActive, setIsCloudActive] = useState(false);
+
+  useEffect(() => {
+    const handleOpenApiKey = (e: any) => {
+      setApiKeyModalReason(e.detail?.reason);
+      setIsApiKeyModalOpen(true);
+    };
+    window.addEventListener('barstock-open-apikey-modal', handleOpenApiKey);
+    return () => window.removeEventListener('barstock-open-apikey-modal', handleOpenApiKey);
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -267,6 +280,12 @@ export const App: React.FC = () => {
                 {currentView === 'users' && <UserManagementView />}
             </main>
         </div>
+
+        <ApiKeyModal
+            isOpen={isApiKeyModalOpen}
+            onClose={() => setIsApiKeyModalOpen(false)}
+            reason={apiKeyModalReason}
+        />
     </div>
   );
 };

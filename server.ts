@@ -17,19 +17,25 @@ app.use(express.json({ limit: '30mb' }));
 app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 
 // Server-side Gemini Client Initialization
-const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
-const ai = new GoogleGenAI({
-  apiKey,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
+const serverApiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+
+function getAiClient(customKey?: string): GoogleGenAI | null {
+  const key = (customKey && customKey.trim()) || serverApiKey;
+  if (!key) return null;
+  return new GoogleGenAI({
+    apiKey: key,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+      timeout: 120000,
     },
-    timeout: 120000,
-  },
-});
+  });
+}
 
 // Helper for resilient model execution with fallback
 async function generateWithFallback(params: {
+  ai: GoogleGenAI;
   contents: any;
   config?: any;
   preferredModel?: string;
@@ -43,7 +49,7 @@ async function generateWithFallback(params: {
 
   for (const model of modelsToTry) {
     try {
-      const response = await ai.models.generateContent({
+      const response = await params.ai.models.generateContent({
         model,
         contents: params.contents,
         config: params.config,
@@ -63,9 +69,11 @@ async function generateWithFallback(params: {
 // 1. Business Analysis Endpoint
 app.post('/api/gemini/analyze-business', async (req, res) => {
   try {
-    if (!apiKey) {
+    const customKey = req.headers['x-custom-api-key'] as string | undefined;
+    const aiClient = getAiClient(customKey);
+    if (!aiClient) {
       return res.status(500).json({
-        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Settings > Secrets panelini kontrol edin.',
+        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Ayarlar > Gemini API Anahtarı bölümünden anahtarınızı giriniz.',
       });
     }
 
@@ -85,6 +93,7 @@ app.post('/api/gemini/analyze-business', async (req, res) => {
     `;
 
     const response = await generateWithFallback({
+      ai: aiClient,
       preferredModel: 'gemini-3.1-flash-lite',
       contents: prompt,
     });
@@ -99,9 +108,11 @@ app.post('/api/gemini/analyze-business', async (req, res) => {
 // 2. PDF Invoice Parser Endpoint
 app.post('/api/gemini/parse-invoice', async (req, res) => {
   try {
-    if (!apiKey) {
+    const customKey = req.headers['x-custom-api-key'] as string | undefined;
+    const aiClient = getAiClient(customKey);
+    if (!aiClient) {
       return res.status(500).json({
-        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Settings > Secrets panelini kontrol edin.',
+        error: 'Sunucuda GEMINI_API_KEY tanımlanmamış. Lütfen Ayarlar > Gemini API Anahtarı bölümünden anahtarınızı giriniz.',
       });
     }
 
@@ -122,6 +133,7 @@ app.post('/api/gemini/parse-invoice', async (req, res) => {
     `;
 
     const response = await generateWithFallback({
+      ai: aiClient,
       preferredModel: 'gemini-3.1-flash-lite',
       contents: {
         parts: [
@@ -180,12 +192,14 @@ app.post('/api/gemini/parse-invoice', async (req, res) => {
 // 3. General Text Generation Endpoint
 app.post('/api/gemini/generate', async (req, res) => {
   try {
-    if (!apiKey) {
+    const customKey = req.headers['x-custom-api-key'] as string | undefined;
+    const aiClient = getAiClient(customKey);
+    if (!aiClient) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
     }
 
-    const { prompt, model = 'gemini-3.8-flash', systemInstruction } = req.body;
-    const response = await ai.models.generateContent({
+    const { prompt, model = 'gemini-3.1-flash-lite', systemInstruction } = req.body;
+    const response = await aiClient.models.generateContent({
       model,
       contents: prompt,
       config: systemInstruction ? { systemInstruction } : undefined,
@@ -201,17 +215,19 @@ app.post('/api/gemini/generate', async (req, res) => {
 // 4. Streaming Text Endpoint (SSE)
 app.post('/api/gemini/stream', async (req, res) => {
   try {
-    if (!apiKey) {
+    const customKey = req.headers['x-custom-api-key'] as string | undefined;
+    const aiClient = getAiClient(customKey);
+    if (!aiClient) {
       return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
     }
 
-    const { prompt, model = 'gemini-3.8-flash', systemInstruction } = req.body;
+    const { prompt, model = 'gemini-3.1-flash-lite', systemInstruction } = req.body;
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const responseStream = await ai.models.generateContentStream({
+    const responseStream = await aiClient.models.generateContentStream({
       model,
       contents: prompt,
       config: systemInstruction ? { systemInstruction } : undefined,
@@ -239,14 +255,15 @@ app.post('/api/gemini/stream', async (req, res) => {
 const wss = new WebSocketServer({ server, path: '/api/live' });
 
 wss.on('connection', async (clientWs) => {
-  if (!apiKey) {
+  const liveAi = getAiClient();
+  if (!liveAi) {
     clientWs.send(JSON.stringify({ error: 'GEMINI_API_KEY is not configured on the server.' }));
     clientWs.close();
     return;
   }
 
   try {
-    const session = await ai.live.connect({
+    const session = await liveAi.live.connect({
       model: 'gemini-3.8-live',
       config: {
         responseModalities: [Modality.AUDIO],

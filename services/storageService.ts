@@ -15,7 +15,8 @@ const STORAGE_KEYS = {
   SESSION: 'barstock_session',
   SORT_PREFERENCE: 'barstock_sort_preference',
   STOCK_COUNTS: 'barstock_stock_counts',
-  HIDDEN_PRODUCTS: 'barstock_hidden_products'
+  HIDDEN_PRODUCTS: 'barstock_hidden_products',
+  API_KEY: 'barstock_gemini_api_key'
 };
 
 // --- IN-MEMORY CACHE ---
@@ -1271,5 +1272,26 @@ export const StorageService = {
       }
       notifyChanges();
       return { created, updated };
+  },
+
+  getCustomApiKey: (): string => {
+      try {
+          return localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
+      } catch {
+          return '';
+      }
+  },
+
+  saveCustomApiKey: (key: string): void => {
+      try {
+          if (key && key.trim()) {
+              localStorage.setItem(STORAGE_KEYS.API_KEY, key.trim());
+          } else {
+              localStorage.removeItem(STORAGE_KEYS.API_KEY);
+          }
+          window.dispatchEvent(new Event('barstock-storage-update'));
+      } catch (e) {
+          console.error("Failed to save API key:", e);
+      }
   }
 };

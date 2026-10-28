@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan to resolve the 404 Server Error on static cPanel/custom domain hosting by introducing smart auto-detection, a direct client-side fallback mode using gemini-3.1-flash-lite, and an in-app Gemini API key settings dialog for custom domains.",
+  "updatedAt":  "2026-10-28T10:44:14.320204379Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

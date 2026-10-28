@@ -122,7 +122,11 @@ export const GoodsReceiptView: React.FC = () => {
 
               setParsedItems(taggedItems);
           } catch (error: any) {
-              alert("Hata: " + error.message);
+              setFeedback({ msg: error.message, type: 'error' });
+              setTimeout(() => setFeedback(null), 6000);
+              if (!error.message?.includes('Gemini API anahtarı') && !error.message?.includes('statik hosting')) {
+                  alert("Fatura Analiz Hatası: " + error.message);
+              }
           } finally {
               setIsParsing(false);
               if(fileInputRef.current) fileInputRef.current.value = '';
