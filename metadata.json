@@ -1,0 +1,8 @@
+{
+  "name": "STOK TAKIP SEHIR KEBAPÇISI",
+  "description": "Mağaza envanteri ile Bar satışlarını birbirine bağlayan, çoklu rol arayüzlerine (Mağaza Sahibi, Depo Sorumlusu, Barmen) ve yapay zeka destekli analizlere sahip kapsamlı bir stok yönetim sistemi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
